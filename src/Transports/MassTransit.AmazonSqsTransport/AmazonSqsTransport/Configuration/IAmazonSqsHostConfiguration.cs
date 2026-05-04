@@ -18,24 +18,32 @@ public interface IAmazonSqsHostConfiguration :
     /// <summary>
     /// Apply the endpoint definition to the receive endpoint configurator
     /// </summary>
-    /// <param name="configurator"></param>
-    /// <param name="definition"></param>
     void ApplyEndpointDefinition(IAmazonSqsReceiveEndpointConfigurator configurator, IEndpointDefinition definition);
 
     /// <summary>
     /// Create a receive endpoint configuration using the specified host
     /// </summary>
-    /// <returns></returns>
     IAmazonSqsReceiveEndpointConfiguration CreateReceiveEndpointConfiguration(string queueName,
         Action<IAmazonSqsReceiveEndpointConfigurator>? configure = null);
 
     /// <summary>
     /// Create a receive endpoint configuration for the default host
     /// </summary>
-    /// <param name="settings"></param>
-    /// <param name="endpointConfiguration"></param>
-    /// <param name="configure"></param>
-    /// <returns></returns>
     IAmazonSqsReceiveEndpointConfiguration CreateReceiveEndpointConfiguration(QueueReceiveSettings settings,
         IAmazonSqsEndpointConfiguration endpointConfiguration, Action<IAmazonSqsReceiveEndpointConfigurator>? configure = null);
+
+    /// <summary>
+    /// Adds an HTTP subscription specification to be applied on bus startup via the PreStartPipe
+    /// </summary>
+    void AddHttpSubscriptionSpecification(IAmazonSqsConsumeTopologySpecification specification);
+
+    /// <summary>
+    /// Returns true if there are HTTP subscription specifications registered
+    /// </summary>
+    bool HasHttpSubscriptions();
+
+    /// <summary>
+    /// Builds a BrokerTopology that includes both the publish topology and all HTTP subscriptions
+    /// </summary>
+    BrokerTopology BuildPreStartBrokerTopology();
 }

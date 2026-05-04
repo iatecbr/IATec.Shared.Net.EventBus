@@ -8,6 +8,6 @@ public class ReceiveEndpointBrokerTopologyBuilder :
 
     public BrokerTopology BuildTopologyLayout()
     {
-        return new AmazonSqsBrokerTopology(Topics, Queues, QueueSubscriptions, TopicSubscriptions);
+        return new AmazonSqsBrokerTopology(Topics, Queues, QueueSubscriptions, TopicSubscriptions, HttpSubscriptions);
     }
 }

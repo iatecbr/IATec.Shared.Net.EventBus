@@ -127,6 +127,60 @@ public class AmazonSqsClientContext :
         return await queueInfo.UpdatePolicy(sqsQueueArn, topicInfo.Arn, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery,
+        CancellationToken cancellationToken)
+    {
+        var topicInfo = await ConnectionContext.GetTopic(topic, cancellationToken).ConfigureAwait(false);
+
+        var protocol = endpointUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? "https" : "http";
+
+        var subscriptionAttributes = new Dictionary<string, string>
+        {
+            ["RawMessageDelivery"] = rawMessageDelivery ? "true" : "false"
+        };
+
+        string? subscriptionArn = null;
+        try
+        {
+            var response = await _snsClient.SubscribeAsync(new SubscribeRequest
+            {
+                TopicArn = topicInfo.Arn,
+                Protocol = protocol,
+                Endpoint = endpointUrl,
+                Attributes = subscriptionAttributes,
+                ReturnSubscriptionArn = true
+            }, cancellationToken).ConfigureAwait(false);
+
+            response.EnsureSuccessfulResponse();
+
+            subscriptionArn = response.SubscriptionArn;
+        }
+        catch (InvalidParameterException exception) when (exception.Message.Contains("exists"))
+        {
+            var existing = await _snsClient.ListSubscriptionsByTopicAsync(topicInfo.Arn, cancellationToken).ConfigureAwait(false);
+            existing.EnsureSuccessfulResponse();
+
+            var match = existing.Subscriptions.SingleOrDefault(x =>
+                x.TopicArn == topicInfo.Arn
+                && x.Endpoint == endpointUrl
+                && x.Protocol is "http" or "https");
+
+            if (match != null)
+            {
+                return false;
+            }
+        }
+
+        if (subscriptionArn == "PendingConfirmation")
+        {
+            LogContext.Info?.Log("HTTP subscription pending confirmation for topic {Topic} -> {Endpoint}. " +
+                "Ensure the endpoint handles the SNS SubscriptionConfirmation request.",
+                topic.EntityName, endpointUrl);
+        }
+
+        return subscriptionArn != null;
+    }
+
     public async Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken)
     {
         var topicInfo = await ConnectionContext.GetTopic(topic, cancellationToken).ConfigureAwait(false);

@@ -11,6 +11,7 @@ public abstract class BrokerTopologyBuilder
     protected readonly NamedEntityCollection<QueueSubscriptionEntity, QueueSubscriptionHandle> QueueSubscriptions;
     protected readonly NamedEntityCollection<TopicEntity, TopicHandle> Topics;
     protected readonly NamedEntityCollection<TopicSubscriptionEntity, TopicSubscriptionHandle> TopicSubscriptions;
+    protected readonly NamedEntityCollection<HttpSubscriptionEntity, HttpSubscriptionHandle> HttpSubscriptions;
     long _nextId;
 
     protected BrokerTopologyBuilder()
@@ -23,6 +24,9 @@ public abstract class BrokerTopologyBuilder
         TopicSubscriptions =
             new NamedEntityCollection<TopicSubscriptionEntity, TopicSubscriptionHandle>(TopicSubscriptionEntity.EntityComparer,
                 TopicSubscriptionEntity.NameComparer);
+        HttpSubscriptions =
+            new NamedEntityCollection<HttpSubscriptionEntity, HttpSubscriptionHandle>(HttpSubscriptionEntity.EntityComparer,
+                HttpSubscriptionEntity.NameComparer);
     }
 
     long GetNextId()
@@ -74,5 +78,16 @@ public abstract class BrokerTopologyBuilder
         var binding = new TopicSubscriptionEntity(id, sourceEntity, destinationEntity);
 
         return TopicSubscriptions.GetOrAdd(binding);
+    }
+
+    public HttpSubscriptionHandle CreateHttpSubscription(TopicHandle topic, string endpointUrl, bool rawMessageDelivery = true)
+    {
+        var id = GetNextId();
+
+        var topicEntity = Topics.Get(topic);
+
+        var subscription = new HttpSubscriptionEntity(id, topicEntity, endpointUrl, rawMessageDelivery);
+
+        return HttpSubscriptions.GetOrAdd(subscription);
     }
 }

@@ -72,8 +72,11 @@ public class ConfigureAmazonSqsTopologyFilter<TSettings> :
         await Task.WhenAll(topics).ConfigureAwait(false);
         await Task.WhenAll(queues).ConfigureAwait(false);
 
-        IEnumerable<Task> subscriptions = _brokerTopology.QueueSubscriptions.Select(subscription => Declare(context, subscription, cancellationToken));
-        await Task.WhenAll(subscriptions).ConfigureAwait(false);
+        IEnumerable<Task> queueSubscriptions = _brokerTopology.QueueSubscriptions.Select(subscription => Declare(context, subscription, cancellationToken));
+        IEnumerable<Task> httpSubscriptions = _brokerTopology.HttpSubscriptions.Select(subscription => Declare(context, subscription, cancellationToken));
+
+        await Task.WhenAll(queueSubscriptions).ConfigureAwait(false);
+        await Task.WhenAll(httpSubscriptions).ConfigureAwait(false);
     }
 
     bool AnyAutoDelete()
@@ -121,5 +124,14 @@ public class ConfigureAmazonSqsTopologyFilter<TSettings> :
         LogContext.Debug?.Log("Created queue {Queue} {QueueArn} {QueueUrl}", queueInfo.EntityName, queueInfo.Arn, queueInfo.Url);
 
         return queueInfo;
+    }
+
+    static async Task Declare(ClientContext context, HttpSubscription subscription, CancellationToken cancellationToken)
+    {
+        var created = await context.CreateHttpSubscription(subscription.Source, subscription.EndpointUrl, subscription.RawMessageDelivery,
+            cancellationToken).ConfigureAwait(false);
+
+        LogContext.Debug?.Log(created ? "Created HTTP subscription {Topic} -> {Endpoint}" : "Existing HTTP subscription {Topic} -> {Endpoint}",
+            subscription.Source.EntityName, subscription.EndpointUrl);
     }
 }

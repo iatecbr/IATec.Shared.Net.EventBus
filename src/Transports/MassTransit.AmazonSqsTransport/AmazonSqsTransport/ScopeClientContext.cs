@@ -53,6 +53,13 @@ public class ScopeClientContext :
         return await _context.CreateQueueSubscription(topic, queue, tokenSource.Token).ConfigureAwait(false);
     }
 
+    public async Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery, CancellationToken cancellationToken)
+    {
+        using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);
+
+        return await _context.CreateHttpSubscription(topic, endpointUrl, rawMessageDelivery, tokenSource.Token).ConfigureAwait(false);
+    }
+
     public async Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken)
     {
         using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);
