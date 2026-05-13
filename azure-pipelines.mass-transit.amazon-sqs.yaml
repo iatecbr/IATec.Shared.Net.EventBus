@@ -10,6 +10,7 @@ pool:
 
 variables:
     buildConfiguration: 'Release'
+    massTransitVersion: '8.5.10'
 
 steps:
     - task: PowerShell@2
@@ -21,7 +22,7 @@ steps:
               Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
       displayName: 'Get project version'
 
-    - script: dotnet build --configuration $(buildConfiguration)
+    - script: dotnet build --configuration $(buildConfiguration) -p:Version=$(massTransitVersion)
       displayName: 'Dotnet build'
 
     - task: DotNetCoreCLI@2
