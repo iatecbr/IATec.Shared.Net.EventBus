@@ -19,7 +19,7 @@
     <Title>IATEc Shared EventBus Amazon SQS</Title>
     <Description>This project is a fork of MassTransit, updated to accelerate development for IATec teams. It is based on version 8.5.9.</Description>
     <Copyright>@IATec Solutions</Copyright>
-    <Version>0.1.0-RC1</Version>
+    <Version>0.1.0-RC2</Version>
     <PackageIconUrl>https://assets-services-dev.sdasystems.org/images/icons/standard.library.icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</PackageProjectUrl>
     <RepositoryUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</RepositoryUrl>
