@@ -25,6 +25,8 @@ public class AmazonSqsBusFactoryConfigurator :
         _settings = new QueueReceiveSettings(busConfiguration.BusEndpointConfiguration, queueName, false, true);
     }
 
+    internal Uri HostAddress => _hostConfiguration.HostAddress;
+
     public ushort WaitTimeSeconds
     {
         set => _settings.WaitTimeSeconds = value;
@@ -108,6 +110,11 @@ public class AmazonSqsBusFactoryConfigurator :
     public IReceiveEndpointConfiguration CreateBusEndpointConfiguration(Action<IReceiveEndpointConfigurator>? configure)
     {
         return _busConfiguration.HostConfiguration.CreateReceiveEndpointConfiguration(_settings, _busConfiguration.BusEndpointConfiguration, configure);
+    }
+
+    public void AddHttpSubscriptionSpecification(IAmazonSqsConsumeTopologySpecification specification)
+    {
+        _hostConfiguration.AddHttpSubscriptionSpecification(specification);
     }
 
     public override IEnumerable<ValidationResult> Validate()

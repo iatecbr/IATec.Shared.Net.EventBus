@@ -11,6 +11,6 @@ public class PublishEndpointBrokerTopologyBuilder :
 
     public BrokerTopology BuildBrokerTopology()
     {
-        return new AmazonSqsBrokerTopology(Topics, Queues, QueueSubscriptions, TopicSubscriptions);
+        return new AmazonSqsBrokerTopology(Topics, Queues, QueueSubscriptions, TopicSubscriptions, HttpSubscriptions);
     }
 }

@@ -72,11 +72,10 @@ public class AmazonSqsReceiveEndpointConfiguration :
         var transport = new ReceiveTransport<ClientContext>(_hostConfiguration, context,
             () => context.ClientContextSupervisor, clientPipe);
 
-        if (IsBusEndpoint && _hostConfiguration.DeployPublishTopology)
+        if (IsBusEndpoint && (_hostConfiguration.DeployPublishTopology || _hostConfiguration.HasHttpSubscriptions()))
         {
             var publishTopology = _hostConfiguration.Topology.PublishTopology;
-
-            var brokerTopology = publishTopology.GetPublishBrokerTopology();
+            var brokerTopology = _hostConfiguration.BuildPreStartBrokerTopology();
 
             transport.PreStartPipe = new ConfigureAmazonSqsTopologyFilter<IPublishTopology>(publishTopology, brokerTopology).ToPipe();
         }

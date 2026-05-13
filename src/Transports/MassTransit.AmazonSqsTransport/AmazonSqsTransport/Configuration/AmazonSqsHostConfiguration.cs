@@ -1,6 +1,7 @@
 ﻿namespace MassTransit.AmazonSqsTransport.Configuration;
 
 using System;
+using System.Collections.Generic;
 using MassTransit.Configuration;
 using Topology;
 using Transports;
@@ -15,6 +16,7 @@ public class AmazonSqsHostConfiguration :
     readonly IAmazonSqsBusTopology _busTopology;
     readonly Recycle<IConnectionContextSupervisor> _connectionContext;
     readonly IAmazonSqsTopologyConfiguration _topologyConfiguration;
+    readonly IList<IAmazonSqsConsumeTopologySpecification> _httpSubscriptionSpecifications;
     AmazonSqsHostSettings _hostSettings;
 
     public AmazonSqsHostConfiguration(IAmazonSqsBusConfiguration busConfiguration, IAmazonSqsTopologyConfiguration
@@ -23,6 +25,7 @@ public class AmazonSqsHostConfiguration :
     {
         _busConfiguration = busConfiguration;
         _topologyConfiguration = topologyConfiguration;
+        _httpSubscriptionSpecifications = new List<IAmazonSqsConsumeTopologySpecification>();
 
         _hostSettings = new ConfigurationHostSettings();
 
@@ -108,6 +111,37 @@ public class AmazonSqsHostConfiguration :
     }
 
     IAmazonSqsBusTopology IAmazonSqsHostConfiguration.Topology => _busTopology;
+
+    public void AddHttpSubscriptionSpecification(IAmazonSqsConsumeTopologySpecification specification)
+    {
+        if (specification == null)
+            throw new ArgumentNullException(nameof(specification));
+
+        _httpSubscriptionSpecifications.Add(specification);
+    }
+
+    public bool HasHttpSubscriptions() => _httpSubscriptionSpecifications.Count > 0;
+
+    public BrokerTopology BuildPreStartBrokerTopology()
+    {
+        var builder = new PreStartBrokerTopologyBuilder();
+
+        if (DeployPublishTopology)
+        {
+            // GetPublishBrokerTopology() already iterates all message types internally
+            var publishBrokerTopology = _busTopology.PublishTopology.GetPublishBrokerTopology();
+
+            // Re-declare all topics from the publish topology into our combined builder
+            foreach (var topic in publishBrokerTopology.Topics)
+                builder.CreateTopic(topic.EntityName, topic.Durable, topic.AutoDelete,
+                    topic.TopicAttributes, topic.TopicSubscriptionAttributes, topic.TopicTags);
+        }
+
+        foreach (var specification in _httpSubscriptionSpecifications)
+            specification.Apply(builder);
+
+        return builder.Build();
+    }
 
     public override void ReceiveEndpoint(IEndpointDefinition definition, IEndpointNameFormatter? endpointNameFormatter,
         Action<IAmazonSqsReceiveEndpointConfigurator>? configureEndpoint = null)

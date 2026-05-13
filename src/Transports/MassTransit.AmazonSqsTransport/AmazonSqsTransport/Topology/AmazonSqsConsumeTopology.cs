@@ -58,6 +58,23 @@ public class AmazonSqsConsumeTopology :
         _specifications.Add(specification);
     }
 
+    public void BindHttp(string topicName, string endpointUrl, Action<IHttpTopicSubscriptionConfigurator>? configure = null)
+    {
+        var configurator = new HttpTopicSubscriptionConfigurator(topicName, endpointUrl);
+
+        configure?.Invoke(configurator);
+
+        var specification = new HttpSubscriptionConsumeTopologySpecification(
+            _publishTopology,
+            configurator.TopicName,
+            configurator.EndpointUrl,
+            configurator.RawMessageDelivery,
+            configurator.Durable,
+            configurator.AutoDelete);
+
+        _specifications.Add(specification);
+    }
+
     public override IEnumerable<ValidationResult> Validate()
     {
         return base.Validate().Concat(_specifications.SelectMany(x => x.Validate()));

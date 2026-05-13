@@ -8,18 +8,20 @@ public class AmazonSqsBrokerTopology :
     BrokerTopology
 {
     public AmazonSqsBrokerTopology(IEnumerable<Topic> exchanges, IEnumerable<Queue> queues, IEnumerable<QueueSubscription> queueSubscriptions,
-        IEnumerable<TopicSubscription> topicSubscriptions)
+        IEnumerable<TopicSubscription> topicSubscriptions, IEnumerable<HttpSubscription>? httpSubscriptions = null)
     {
         Topics = exchanges.ToArray();
         Queues = queues.ToArray();
         QueueSubscriptions = queueSubscriptions.ToArray();
         TopicSubscriptions = topicSubscriptions.ToArray();
+        HttpSubscriptions = httpSubscriptions?.ToArray() ?? [];
     }
 
     public Topic[] Topics { get; }
     public Queue[] Queues { get; }
     public QueueSubscription[] QueueSubscriptions { get; }
     public TopicSubscription[] TopicSubscriptions { get; }
+    public HttpSubscription[] HttpSubscriptions { get; }
 
     void IProbeSite.Probe(ProbeContext context)
     {
@@ -62,6 +64,17 @@ public class AmazonSqsBrokerTopology :
             {
                 Source = subscription.Source.EntityName,
                 Destination = subscription.Destination.EntityName
+            });
+        }
+
+        foreach (var subscription in HttpSubscriptions)
+        {
+            var subscriptionScope = context.CreateScope("httpSubscription");
+            subscriptionScope.Set(new
+            {
+                Source = subscription.Source.EntityName,
+                subscription.EndpointUrl,
+                subscription.RawMessageDelivery
             });
         }
     }
