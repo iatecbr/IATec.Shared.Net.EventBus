@@ -10,23 +10,28 @@ pool:
 
 variables:
     buildConfiguration: 'Release'
-    massTransitVersion: '8.5.9'
 
 steps:
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'Dotnet build'
+
     - task: PowerShell@2
       inputs:
           targetType: 'inline'
           script: |
-              $version = [xml](Get-Content src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj)
-              $packageVersion = $version.Project.PropertyGroup.PackageVersion
-              Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
-      displayName: 'Get project version'
+              $xml = [xml](Get-Content src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj)
+              $version = ($xml.Project.PropertyGroup | Where-Object { $_.PackageVersion } | Select-Object -First 1).PackageVersion
+              Write-Host "Package version: $version"
+      displayName: 'Display package version'
 
-    - script: dotnet build --configuration $(buildConfiguration) -p:Version=$(massTransitVersion)
-      displayName: 'Dotnet build'
-
-    - script: dotnet pack src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj --configuration $(buildConfiguration) --no-build -p:Version=$(massTransitVersion) --output $(Build.ArtifactStagingDirectory)
-      displayName: 'Pack NuGet package with dotnet pack'
+    - task: DotNetCoreCLI@2
+      inputs:
+          command: 'pack'
+          packagesToPack: '**/MassTransit.AmazonSqsTransport.csproj'
+          packDirectory: '$(Build.ArtifactStagingDirectory)'
+          nobuild: true
+          versioningScheme: 'off'
+      displayName: 'Pack NuGet package'
 
     - task: NuGetCommand@2
       displayName: 'NuGet push'
