@@ -17,22 +17,15 @@ steps:
       inputs:
           targetType: 'inline'
           script: |
-              $version = [xml](Get-Content  src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj)
-              $packageVersion = $version.Project.PropertyGroup.Version
+              $version = [xml](Get-Content src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj)
+              $packageVersion = $version.Project.PropertyGroup.PackageVersion
               Write-Host "##vso[task.setvariable variable=packageVersion]$packageVersion"
       displayName: 'Get project version'
 
     - script: dotnet build --configuration $(buildConfiguration) -p:Version=$(massTransitVersion)
       displayName: 'Dotnet build'
 
-    - task: DotNetCoreCLI@2
-      inputs:
-          command: 'pack'
-          packagesToPack: '**/MassTransit.AmazonSqsTransport.csproj'
-          packDirectory: '$(Build.ArtifactStagingDirectory)'
-          nobuild: true
-          versioningScheme: 'byEnvVar'
-          versionEnvVar: 'packageVersion'
+    - script: dotnet pack src/Transports/MassTransit.AmazonSqsTransport/MassTransit.AmazonSqsTransport.csproj --configuration $(buildConfiguration) --no-build -p:Version=$(massTransitVersion) --output $(Build.ArtifactStagingDirectory)
       displayName: 'Pack NuGet package with dotnet pack'
 
     - task: NuGetCommand@2
