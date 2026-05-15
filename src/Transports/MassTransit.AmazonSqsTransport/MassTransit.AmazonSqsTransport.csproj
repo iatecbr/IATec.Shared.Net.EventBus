@@ -5,25 +5,37 @@
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(IsWindows)' == 'true' ">
-    <TargetFrameworks>$(TargetFrameworks);net472</TargetFrameworks>
-  </PropertyGroup>
+<!--  <PropertyGroup Condition=" '$(IsWindows)' == 'true' ">-->
+<!--    <TargetFrameworks>$(TargetFrameworks);net472</TargetFrameworks>-->
+<!--  </PropertyGroup>-->
 
   <PropertyGroup>
-    <RootNamespace>MassTransit</RootNamespace>
+    <RootNamespace>IATec.Shared.Net.EventBus.AmazonSQS</RootNamespace>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>MassTransit.AmazonSQS</PackageId>
-    <Title>MassTransit.AmazonSQS</Title>
+    <PackageId>IATec.Shared.Net.EventBus.AmazonSQS</PackageId>
+    <Title>IATEc Shared EventBus Amazon SQS</Title>
+    <Description>This project is a fork of MassTransit, updated to accelerate development for IATec teams. It is based on version 8.5.9.</Description>
+    <Copyright>@IATec Solutions</Copyright>
+    <PackageVersion>0.1.0-RC4</PackageVersion>
+    <PackageIconUrl>https://assets-services-dev.sdasystems.org/images/icons/standard.library.icon.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageTags>net</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>MassTransit;AmazonSQS</PackageTags>
-    <Description>MassTransit Amazon SQS transport support; $(Description)</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.SimpleNotificationService" />
     <PackageReference Include="AWSSDK.SQS" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

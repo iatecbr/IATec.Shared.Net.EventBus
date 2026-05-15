@@ -46,4 +46,13 @@ public interface IBrokerTopologyBuilder
     /// <param name="destination"></param>
     /// <returns></returns>
     TopicSubscriptionHandle CreateTopicSubscription(TopicHandle source, TopicHandle destination);
+
+    /// <summary>
+    /// Create an HTTP/HTTPS subscription on a topic
+    /// </summary>
+    /// <param name="topic">The source topic handle</param>
+    /// <param name="endpointUrl">The HTTP/HTTPS endpoint URL</param>
+    /// <param name="rawMessageDelivery">When true, SNS delivers the raw message body</param>
+    /// <returns></returns>
+    HttpSubscriptionHandle CreateHttpSubscription(TopicHandle topic, string endpointUrl, bool rawMessageDelivery = true);
 }

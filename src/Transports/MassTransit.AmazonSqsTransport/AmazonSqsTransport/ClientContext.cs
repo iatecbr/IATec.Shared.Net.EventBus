@@ -19,6 +19,8 @@ public interface ClientContext :
 
     Task<bool> CreateQueueSubscription(Topology.Topic topic, Queue queue, CancellationToken cancellationToken);
 
+    Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery, CancellationToken cancellationToken);
+
     Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken);
 
     Task DeleteQueue(Queue queue, CancellationToken cancellationToken);

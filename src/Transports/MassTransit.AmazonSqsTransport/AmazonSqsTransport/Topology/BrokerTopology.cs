@@ -7,4 +7,5 @@ public interface BrokerTopology :
     Queue[] Queues { get; }
     QueueSubscription[] QueueSubscriptions { get; }
     TopicSubscription[] TopicSubscriptions { get; }
+    HttpSubscription[] HttpSubscriptions { get; }
 }
