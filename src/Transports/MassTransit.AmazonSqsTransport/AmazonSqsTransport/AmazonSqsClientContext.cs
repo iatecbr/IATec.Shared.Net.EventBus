@@ -181,6 +181,104 @@ public class AmazonSqsClientContext :
         return subscriptionArn != null;
     }
 
+    public async Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl,
+        bool rawMessageDelivery, string? dlqArn, int maxReceiveCount,
+        int minDelayTarget, int maxDelayTarget, string backoffFunction, CancellationToken cancellationToken)
+    {
+        var topicInfo = await ConnectionContext.GetTopic(topic, cancellationToken).ConfigureAwait(false);
+
+        var protocol = endpointUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? "https" : "http";
+
+        var subscriptionAttributes = new Dictionary<string, string>
+        {
+            ["RawMessageDelivery"] = rawMessageDelivery ? "true" : "false"
+        };
+
+        string? subscriptionArn = null;
+        try
+        {
+            var response = await _snsClient.SubscribeAsync(new SubscribeRequest
+            {
+                TopicArn = topicInfo.Arn,
+                Protocol = protocol,
+                Endpoint = endpointUrl,
+                Attributes = subscriptionAttributes,
+                ReturnSubscriptionArn = true
+            }, cancellationToken).ConfigureAwait(false);
+
+            response.EnsureSuccessfulResponse();
+
+            subscriptionArn = response.SubscriptionArn;
+        }
+        catch (InvalidParameterException exception) when (exception.Message.Contains("exists"))
+        {
+            var existing = await _snsClient.ListSubscriptionsByTopicAsync(topicInfo.Arn, cancellationToken).ConfigureAwait(false);
+            existing.EnsureSuccessfulResponse();
+
+            var match = existing.Subscriptions.SingleOrDefault(x =>
+                x.TopicArn == topicInfo.Arn
+                && x.Endpoint == endpointUrl
+                && x.Protocol is "http" or "https");
+
+            if (match != null)
+            {
+                return false;
+            }
+        }
+
+        if (dlqArn != null && subscriptionArn != null && subscriptionArn != "PendingConfirmation")
+        {
+            try
+            {
+                var redrivePolicy = $"{{\"deadLetterTargetArn\":\"{dlqArn}\"}}";
+
+                await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
+                {
+                    SubscriptionArn = subscriptionArn,
+                    AttributeName = "RedrivePolicy",
+                    AttributeValue = redrivePolicy
+                }, cancellationToken).ConfigureAwait(false);
+
+                // Configure DeliveryPolicy to control HTTP retry attempts before sending to DLQ
+                var deliveryPolicy = $"{{\"healthyRetryPolicy\":{{\"numRetries\":{maxReceiveCount},\"minDelayTarget\":{minDelayTarget},\"maxDelayTarget\":{maxDelayTarget},\"numMinDelayRetries\":0,\"numMaxDelayRetries\":0,\"numNoDelayRetries\":0,\"backoffFunction\":\"{backoffFunction}\"}}}}";
+
+                await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
+                {
+                    SubscriptionArn = subscriptionArn,
+                    AttributeName = "DeliveryPolicy",
+                    AttributeValue = deliveryPolicy
+                }, cancellationToken).ConfigureAwait(false);
+
+                LogContext.Info?.Log("Configured RedrivePolicy and DeliveryPolicy (numRetries={MaxReceiveCount}) on subscription {SubscriptionArn} -> DLQ {DlqArn}",
+                    maxReceiveCount, subscriptionArn, dlqArn);
+            }
+            catch (Exception ex)
+            {
+                LogContext.Error?.Log(ex,
+                    "Failed to configure RedrivePolicy on subscription {SubscriptionArn} -> DLQ {DlqArn}",
+                    subscriptionArn, dlqArn);
+                throw new InvalidOperationException(
+                    $"Failed to set RedrivePolicy on subscription {subscriptionArn} targeting DLQ {dlqArn}", ex);
+            }
+        }
+        else if (dlqArn != null && subscriptionArn == "PendingConfirmation")
+        {
+            LogContext.Warning?.Log(
+                "Cannot configure RedrivePolicy for pending subscription on topic {Topic} -> {Endpoint}. " +
+                "RedrivePolicy will need to be applied after subscription confirmation.",
+                topic.EntityName, endpointUrl);
+        }
+
+        if (subscriptionArn == "PendingConfirmation")
+        {
+            LogContext.Info?.Log("HTTP subscription pending confirmation for topic {Topic} -> {Endpoint}. " +
+                "Ensure the endpoint handles the SNS SubscriptionConfirmation request.",
+                topic.EntityName, endpointUrl);
+        }
+
+        return subscriptionArn != null;
+    }
+
     public async Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken)
     {
         var topicInfo = await ConnectionContext.GetTopic(topic, cancellationToken).ConfigureAwait(false);

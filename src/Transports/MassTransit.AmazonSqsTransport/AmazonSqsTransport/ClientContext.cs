@@ -21,6 +21,9 @@ public interface ClientContext :
 
     Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery, CancellationToken cancellationToken);
 
+    Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery, string? dlqArn,
+        int maxReceiveCount, int minDelayTarget, int maxDelayTarget, string backoffFunction, CancellationToken cancellationToken);
+
     Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken);
 
     Task DeleteQueue(Queue queue, CancellationToken cancellationToken);

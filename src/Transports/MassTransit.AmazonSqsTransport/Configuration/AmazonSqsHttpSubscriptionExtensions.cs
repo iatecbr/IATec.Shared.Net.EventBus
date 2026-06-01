@@ -39,7 +39,13 @@ public static class AmazonSqsHttpSubscriptionExtensions
             subscriptionConfigurator.EndpointUrl,
             subscriptionConfigurator.RawMessageDelivery,
             subscriptionConfigurator.Durable,
-            subscriptionConfigurator.AutoDelete);
+            subscriptionConfigurator.AutoDelete,
+            subscriptionConfigurator.DeadLetterQueueEnabled,
+            subscriptionConfigurator.DeadLetterQueueName,
+            subscriptionConfigurator.MaxReceiveCount,
+            subscriptionConfigurator.MinDelayTarget,
+            subscriptionConfigurator.MaxDelayTarget,
+            subscriptionConfigurator.BackoffFunction);
 
         busConfigurator.AddHttpSubscriptionSpecification(specification);
     }

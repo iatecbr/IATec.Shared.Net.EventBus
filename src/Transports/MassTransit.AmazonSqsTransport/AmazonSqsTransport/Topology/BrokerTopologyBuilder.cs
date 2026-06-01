@@ -90,4 +90,18 @@ public abstract class BrokerTopologyBuilder
 
         return HttpSubscriptions.GetOrAdd(subscription);
     }
+
+    public HttpSubscriptionHandle CreateHttpSubscription(TopicHandle topic, string endpointUrl, bool rawMessageDelivery,
+        bool deadLetterQueueEnabled, string? deadLetterQueueName, int maxReceiveCount,
+        int minDelayTarget = 20, int maxDelayTarget = 20, string backoffFunction = "linear")
+    {
+        var id = GetNextId();
+
+        var topicEntity = Topics.Get(topic);
+
+        var subscription = new HttpSubscriptionEntity(id, topicEntity, endpointUrl, rawMessageDelivery,
+            deadLetterQueueEnabled, deadLetterQueueName, maxReceiveCount, minDelayTarget, maxDelayTarget, backoffFunction);
+
+        return HttpSubscriptions.GetOrAdd(subscription);
+    }
 }

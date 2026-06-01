@@ -11,12 +11,20 @@ public class HttpSubscriptionEntity :
     readonly string _endpointUrl;
     readonly TopicEntity _topic;
 
-    public HttpSubscriptionEntity(long id, TopicEntity topic, string endpointUrl, bool rawMessageDelivery)
+    public HttpSubscriptionEntity(long id, TopicEntity topic, string endpointUrl, bool rawMessageDelivery,
+        bool deadLetterQueueEnabled = false, string? deadLetterQueueName = null, int maxReceiveCount = 3,
+        int minDelayTarget = 20, int maxDelayTarget = 20, string backoffFunction = "linear")
     {
         Id = id;
         _topic = topic;
         _endpointUrl = endpointUrl;
         RawMessageDelivery = rawMessageDelivery;
+        DeadLetterQueueEnabled = deadLetterQueueEnabled;
+        DeadLetterQueueName = deadLetterQueueName;
+        MaxReceiveCount = maxReceiveCount;
+        MinDelayTarget = minDelayTarget;
+        MaxDelayTarget = maxDelayTarget;
+        BackoffFunction = backoffFunction;
     }
 
     public static IEqualityComparer<HttpSubscriptionEntity> EntityComparer { get; } = new HttpSubscriptionEntityEqualityComparer();
@@ -28,6 +36,12 @@ public class HttpSubscriptionEntity :
     public Topic Source => _topic.Topic;
     public string EndpointUrl => _endpointUrl;
     public bool RawMessageDelivery { get; }
+    public bool DeadLetterQueueEnabled { get; }
+    public string? DeadLetterQueueName { get; }
+    public int MaxReceiveCount { get; }
+    public int MinDelayTarget { get; }
+    public int MaxDelayTarget { get; }
+    public string BackoffFunction { get; }
 
     public override string ToString()
     {

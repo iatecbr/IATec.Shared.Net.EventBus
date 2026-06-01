@@ -128,10 +128,41 @@ public class ConfigureAmazonSqsTopologyFilter<TSettings> :
 
     static async Task Declare(ClientContext context, HttpSubscription subscription, CancellationToken cancellationToken)
     {
-        var created = await context.CreateHttpSubscription(subscription.Source, subscription.EndpointUrl, subscription.RawMessageDelivery,
-            cancellationToken).ConfigureAwait(false);
+        string? dlqArn = null;
 
-        LogContext.Debug?.Log(created ? "Created HTTP subscription {Topic} -> {Endpoint}" : "Existing HTTP subscription {Topic} -> {Endpoint}",
+        // Si DLQ está habilitada, obtener el ARN de la cola DLQ ya creada y configurar permisos
+        if (subscription.DeadLetterQueueEnabled && !string.IsNullOrWhiteSpace(subscription.DeadLetterQueueName))
+        {
+            var dlqQueueInfo = await context.GetQueueInfo(subscription.DeadLetterQueueName!, cancellationToken)
+                .ConfigureAwait(false);
+            dlqArn = dlqQueueInfo.Arn;
+
+            if (dlqQueueInfo.Existing)
+            {
+                LogContext.Debug?.Log("Reusing existing DLQ {Queue} {QueueArn} {QueueUrl}",
+                    subscription.DeadLetterQueueName, dlqQueueInfo.Arn, dlqQueueInfo.Url);
+            }
+            else
+            {
+                LogContext.Debug?.Log("Created DLQ {Queue} {QueueArn} {QueueUrl}",
+                    subscription.DeadLetterQueueName, dlqQueueInfo.Arn, dlqQueueInfo.Url);
+            }
+
+            // Obtener TopicInfo para el ARN del topic
+            var topicInfo = await context.CreateTopic(subscription.Source, cancellationToken).ConfigureAwait(false);
+
+            // Configurar permisos IAM (reutiliza QueueInfo.UpdatePolicy)
+            await dlqQueueInfo.UpdatePolicy(dlqQueueInfo.Arn, topicInfo.Arn, cancellationToken).ConfigureAwait(false);
+        }
+
+        var created = await context.CreateHttpSubscription(subscription.Source, subscription.EndpointUrl,
+            subscription.RawMessageDelivery, dlqArn, subscription.MaxReceiveCount,
+            subscription.MinDelayTarget, subscription.MaxDelayTarget, subscription.BackoffFunction, cancellationToken)
+            .ConfigureAwait(false);
+
+        LogContext.Debug?.Log(created
+            ? "Created HTTP subscription {Topic} -> {Endpoint}"
+            : "Existing HTTP subscription {Topic} -> {Endpoint}",
             subscription.Source.EntityName, subscription.EndpointUrl);
     }
 }
