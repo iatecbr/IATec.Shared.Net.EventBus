@@ -55,4 +55,21 @@ public interface IBrokerTopologyBuilder
     /// <param name="rawMessageDelivery">When true, SNS delivers the raw message body</param>
     /// <returns></returns>
     HttpSubscriptionHandle CreateHttpSubscription(TopicHandle topic, string endpointUrl, bool rawMessageDelivery = true);
+
+    /// <summary>
+    /// Create an HTTP/HTTPS subscription on a topic with optional DLQ configuration
+    /// </summary>
+    /// <param name="topic">The source topic handle</param>
+    /// <param name="endpointUrl">The HTTP/HTTPS endpoint URL</param>
+    /// <param name="rawMessageDelivery">When true, SNS delivers the raw message body</param>
+    /// <param name="deadLetterQueueEnabled">When true, a DLQ is created for failed message delivery</param>
+    /// <param name="deadLetterQueueName">Custom name for the DLQ. If null, generated as {TopicName}-http-dlq</param>
+    /// <param name="maxReceiveCount">Maximum delivery attempts before sending to DLQ. Range: 1-100</param>
+    /// <param name="minDelayTarget">Minimum delay in seconds between retries</param>
+    /// <param name="maxDelayTarget">Maximum delay in seconds between retries</param>
+    /// <param name="backoffFunction">Backoff function: linear, arithmetic, geometric, exponential</param>
+    /// <returns></returns>
+    HttpSubscriptionHandle CreateHttpSubscription(TopicHandle topic, string endpointUrl, bool rawMessageDelivery,
+        bool deadLetterQueueEnabled, string? deadLetterQueueName, int maxReceiveCount,
+        int minDelayTarget = 20, int maxDelayTarget = 20, string backoffFunction = "linear");
 }

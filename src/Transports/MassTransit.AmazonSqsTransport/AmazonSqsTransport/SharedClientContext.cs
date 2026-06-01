@@ -55,6 +55,16 @@ public class SharedClientContext :
         return await _context.CreateHttpSubscription(topic, endpointUrl, rawMessageDelivery, tokenSource.Token).ConfigureAwait(false);
     }
 
+    public async Task<bool> CreateHttpSubscription(Topology.Topic topic, string endpointUrl, bool rawMessageDelivery,
+        string? dlqArn, int maxReceiveCount, int minDelayTarget, int maxDelayTarget, string backoffFunction, CancellationToken cancellationToken)
+    {
+        using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);
+
+        return await _context.CreateHttpSubscription(topic, endpointUrl, rawMessageDelivery, dlqArn, maxReceiveCount,
+            minDelayTarget, maxDelayTarget, backoffFunction, tokenSource.Token)
+            .ConfigureAwait(false);
+    }
+
     public async Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken)
     {
         using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);

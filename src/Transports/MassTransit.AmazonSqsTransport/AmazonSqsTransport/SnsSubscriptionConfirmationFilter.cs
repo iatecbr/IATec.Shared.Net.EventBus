@@ -71,12 +71,25 @@ public class SnsSubscriptionConfirmationFilter : IAsyncResourceFilter
         }
         catch
         {
+            // Body is not a valid SNS envelope (likely RawMessageDelivery payload)
+            // Try to deserialize as MassTransit MessageEnvelope directly
+            TryStoreRawMessageEnvelope(context.HttpContext, body);
             await next().ConfigureAwait(false);
             return;
         }
 
         if (envelope == null)
         {
+            TryStoreRawMessageEnvelope(context.HttpContext, body);
+            await next().ConfigureAwait(false);
+            return;
+        }
+
+        // If Type is null/empty, this is not a real SNS envelope — it's a raw payload
+        // that happened to deserialize without error (e.g., a JSON object with no "Type" field)
+        if (string.IsNullOrWhiteSpace(envelope.Type))
+        {
+            TryStoreRawMessageEnvelope(context.HttpContext, body);
             await next().ConfigureAwait(false);
             return;
         }
@@ -113,6 +126,35 @@ public class SnsSubscriptionConfirmationFilter : IAsyncResourceFilter
 
         await next().ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Attempts to deserialize the raw body as a MassTransit MessageEnvelope (for RawMessageDelivery scenarios)
+    /// and stores it in HttpContext.Items for retrieval via GetMessageEnvelope().
+    /// Also stores the raw body string for retrieval via GetRawPayload().
+    /// </summary>
+    static void TryStoreRawMessageEnvelope(HttpContext httpContext, string body)
+    {
+        // Always store the raw payload
+        httpContext.Items[RawPayloadKey] = body;
+
+        try
+        {
+            var messageEnvelope = JsonSerializer.Deserialize<MessageEnvelope>(
+                body,
+                SystemTextJsonMessageSerializer.Options);
+
+            if (messageEnvelope != null)
+            {
+                httpContext.Items[MessageEnvelopeKey] = messageEnvelope;
+            }
+        }
+        catch (JsonException ex)
+        {
+            LogContext.Debug?.Log(ex, "Raw payload is not a MassTransit MessageEnvelope");
+        }
+    }
+
+    static readonly object RawPayloadKey = typeof(SnsSubscriptionConfirmationFilter);
 }
 
 
