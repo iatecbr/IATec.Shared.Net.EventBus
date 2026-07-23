@@ -5,7 +5,7 @@
 A funcionalidade de DLQ para suscripciones HTTP de SNS permite capturar automaticamente mensagens que o SNS não consegue entregar ao endpoint HTTP/HTTPS após esgotar as tentativas de entrega. Quando habilitada, o sistema cria automaticamente uma fila SQS como Dead Letter Queue e configura o `RedrivePolicy` na subscription SNS.
 
 **Comportamento automático ao habilitar DLQ:**
-1. Cria uma fila SQS padrão (DLQ) com retenção de 30 dias
+1. Cria uma fila SQS padrão (DLQ) com retenção de 14 dias
 2. Configura permissões IAM para que o SNS possa enviar mensagens à DLQ
 3. Aplica o `RedrivePolicy` na subscription SNS apontando para a DLQ
 
@@ -479,7 +479,7 @@ Quando `DeadLetterQueueEnabled = true`, os seguintes recursos são criados/confi
 ### 1. Fila SQS (DLQ)
 
 - **Tipo:** Standard (não FIFO)
-- **MessageRetentionPeriod:** 2.592.000 segundos (30 dias)
+- **MessageRetentionPeriod:** 1.209.600 segundos (14 dias)
 - **Durable/AutoDelete:** Herda da configuração da subscription
 
 ### 2. Política IAM na DLQ
