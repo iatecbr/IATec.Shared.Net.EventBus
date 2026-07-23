@@ -136,10 +136,10 @@ namespace MassTransit.AmazonSqsTransport.Tests.HttpSubscription
 
         /// <summary>
         /// **Validates: Requirements 2.7**
-        /// Verifies that the DLQ queue is created with MessageRetentionPeriod = 2592000 (30 days).
+        /// Verifies that the DLQ queue is created with MessageRetentionPeriod = 1209600 (14 days).
         /// </summary>
         [Test]
-        public void DLQ_queue_has_MessageRetentionPeriod_of_2592000()
+        public void DLQ_queue_has_MessageRetentionPeriod_of_1209600()
         {
             var spec = new HttpSubscriptionConsumeTopologySpecification(
                 _publishTopology,
@@ -162,8 +162,8 @@ namespace MassTransit.AmazonSqsTransport.Tests.HttpSubscription
             Assert.That(dlqQueue, Is.Not.Null, "DLQ queue should be registered");
             Assert.That(dlqQueue!.QueueAttributes.ContainsKey("MessageRetentionPeriod"), Is.True,
                 "DLQ queue must have MessageRetentionPeriod attribute");
-            Assert.That(dlqQueue.QueueAttributes["MessageRetentionPeriod"], Is.EqualTo("2592000"),
-                "MessageRetentionPeriod must be 2592000 seconds (30 days)");
+            Assert.That(dlqQueue.QueueAttributes["MessageRetentionPeriod"], Is.EqualTo("1209600"),
+                "MessageRetentionPeriod must be 1209600 seconds (14 days)");
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace MassTransit.AmazonSqsTransport.Tests.HttpSubscription
         /// Verifies MessageRetentionPeriod with a custom DLQ name.
         /// </summary>
         [Test]
-        public void DLQ_queue_with_custom_name_has_MessageRetentionPeriod_of_2592000()
+        public void DLQ_queue_with_custom_name_has_MessageRetentionPeriod_of_1209600()
         {
             var spec = new HttpSubscriptionConsumeTopologySpecification(
                 _publishTopology,
@@ -192,8 +192,8 @@ namespace MassTransit.AmazonSqsTransport.Tests.HttpSubscription
             var dlqQueue = topology.Queues.FirstOrDefault(q => q.EntityName == "events-failures");
 
             Assert.That(dlqQueue, Is.Not.Null, "Custom DLQ queue should be registered");
-            Assert.That(dlqQueue!.QueueAttributes["MessageRetentionPeriod"], Is.EqualTo("2592000"),
-                "MessageRetentionPeriod must be 2592000 seconds (30 days)");
+            Assert.That(dlqQueue!.QueueAttributes["MessageRetentionPeriod"], Is.EqualTo("1209600"),
+                "MessageRetentionPeriod must be 1209600 seconds (14 days)");
         }
 
         /// <summary>

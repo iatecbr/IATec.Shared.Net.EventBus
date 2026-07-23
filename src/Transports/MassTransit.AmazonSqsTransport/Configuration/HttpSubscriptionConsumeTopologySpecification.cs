@@ -162,7 +162,7 @@ public class HttpSubscriptionConsumeTopologySpecification :
             var dlqName = scopePrefix + ResolveDeadLetterQueueName();
             var queueAttributes = new Dictionary<string, object>
             {
-                ["MessageRetentionPeriod"] = "2592000"
+                ["MessageRetentionPeriod"] = "1209600"
             };
 
             builder.CreateQueue(dlqName, Durable, AutoDelete, queueAttributes);
