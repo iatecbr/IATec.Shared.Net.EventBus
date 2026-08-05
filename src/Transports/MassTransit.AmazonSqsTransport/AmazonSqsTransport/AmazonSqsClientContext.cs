@@ -189,6 +189,39 @@ public class AmazonSqsClientContext :
 
         var protocol = endpointUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? "https" : "http";
 
+        // Check if a confirmed subscription already exists for this endpoint
+        try
+        {
+            var existingSubscriptions = await _snsClient.ListSubscriptionsByTopicAsync(topicInfo.Arn, cancellationToken).ConfigureAwait(false);
+            existingSubscriptions.EnsureSuccessfulResponse();
+
+            var confirmedMatch = existingSubscriptions.Subscriptions.SingleOrDefault(x =>
+                x.TopicArn == topicInfo.Arn
+                && x.Endpoint == endpointUrl
+                && x.Protocol is "http" or "https"
+                && x.SubscriptionArn != "PendingConfirmation"
+                && x.SubscriptionArn != "Deleted");
+
+            if (confirmedMatch != null)
+            {
+                // Subscription already confirmed — apply RedrivePolicy/DeliveryPolicy if DLQ is configured
+                if (dlqArn != null)
+                {
+                    await ApplyDlqPolicies(confirmedMatch.SubscriptionArn, dlqArn, maxReceiveCount,
+                        minDelayTarget, maxDelayTarget, backoffFunction, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                LogContext.Debug?.Log("Existing confirmed HTTP subscription {Topic} -> {Endpoint} ({SubscriptionArn})",
+                    topic.EntityName, endpointUrl, confirmedMatch.SubscriptionArn);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogContext.Debug?.Log(ex, "Could not check existing subscriptions for {Topic}, proceeding with Subscribe", topic.EntityName);
+        }
+
         var subscriptionAttributes = new Dictionary<string, string>
         {
             ["RawMessageDelivery"] = rawMessageDelivery ? "true" : "false"
@@ -228,38 +261,9 @@ public class AmazonSqsClientContext :
 
         if (dlqArn != null && subscriptionArn != null && subscriptionArn != "PendingConfirmation")
         {
-            try
-            {
-                var redrivePolicy = $"{{\"deadLetterTargetArn\":\"{dlqArn}\"}}";
-
-                await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
-                {
-                    SubscriptionArn = subscriptionArn,
-                    AttributeName = "RedrivePolicy",
-                    AttributeValue = redrivePolicy
-                }, cancellationToken).ConfigureAwait(false);
-
-                // Configure DeliveryPolicy to control HTTP retry attempts before sending to DLQ
-                var deliveryPolicy = $"{{\"healthyRetryPolicy\":{{\"numRetries\":{maxReceiveCount},\"minDelayTarget\":{minDelayTarget},\"maxDelayTarget\":{maxDelayTarget},\"numMinDelayRetries\":0,\"numMaxDelayRetries\":0,\"numNoDelayRetries\":0,\"backoffFunction\":\"{backoffFunction}\"}}}}";
-
-                await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
-                {
-                    SubscriptionArn = subscriptionArn,
-                    AttributeName = "DeliveryPolicy",
-                    AttributeValue = deliveryPolicy
-                }, cancellationToken).ConfigureAwait(false);
-
-                LogContext.Info?.Log("Configured RedrivePolicy and DeliveryPolicy (numRetries={MaxReceiveCount}) on subscription {SubscriptionArn} -> DLQ {DlqArn}",
-                    maxReceiveCount, subscriptionArn, dlqArn);
-            }
-            catch (Exception ex)
-            {
-                LogContext.Error?.Log(ex,
-                    "Failed to configure RedrivePolicy on subscription {SubscriptionArn} -> DLQ {DlqArn}",
-                    subscriptionArn, dlqArn);
-                throw new InvalidOperationException(
-                    $"Failed to set RedrivePolicy on subscription {subscriptionArn} targeting DLQ {dlqArn}", ex);
-            }
+            await ApplyDlqPolicies(subscriptionArn, dlqArn, maxReceiveCount,
+                minDelayTarget, maxDelayTarget, backoffFunction, cancellationToken)
+                .ConfigureAwait(false);
         }
         else if (dlqArn != null && subscriptionArn == "PendingConfirmation")
         {
@@ -277,6 +281,42 @@ public class AmazonSqsClientContext :
         }
 
         return subscriptionArn != null;
+    }
+
+    async Task ApplyDlqPolicies(string subscriptionArn, string dlqArn, int maxReceiveCount,
+        int minDelayTarget, int maxDelayTarget, string backoffFunction, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var redrivePolicy = $"{{\"deadLetterTargetArn\":\"{dlqArn}\"}}";
+
+            await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
+            {
+                SubscriptionArn = subscriptionArn,
+                AttributeName = "RedrivePolicy",
+                AttributeValue = redrivePolicy
+            }, cancellationToken).ConfigureAwait(false);
+
+            var deliveryPolicy = $"{{\"healthyRetryPolicy\":{{\"numRetries\":{maxReceiveCount},\"minDelayTarget\":{minDelayTarget},\"maxDelayTarget\":{maxDelayTarget},\"numMinDelayRetries\":0,\"numMaxDelayRetries\":0,\"numNoDelayRetries\":0,\"backoffFunction\":\"{backoffFunction}\"}}}}";
+
+            await _snsClient.SetSubscriptionAttributesAsync(new SetSubscriptionAttributesRequest
+            {
+                SubscriptionArn = subscriptionArn,
+                AttributeName = "DeliveryPolicy",
+                AttributeValue = deliveryPolicy
+            }, cancellationToken).ConfigureAwait(false);
+
+            LogContext.Info?.Log("Configured RedrivePolicy and DeliveryPolicy (numRetries={MaxReceiveCount}) on subscription {SubscriptionArn} -> DLQ {DlqArn}",
+                maxReceiveCount, subscriptionArn, dlqArn);
+        }
+        catch (Exception ex)
+        {
+            LogContext.Error?.Log(ex,
+                "Failed to configure RedrivePolicy on subscription {SubscriptionArn} -> DLQ {DlqArn}",
+                subscriptionArn, dlqArn);
+            throw new InvalidOperationException(
+                $"Failed to set RedrivePolicy on subscription {subscriptionArn} targeting DLQ {dlqArn}", ex);
+        }
     }
 
     public async Task DeleteTopic(Topology.Topic topic, CancellationToken cancellationToken)
