@@ -15,8 +15,17 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageTags>MassTransit</PackageTags>
-    <Description>$(Description)</Description>
+    <PackageId>IATec.Shared.Net.EventBus.Abstractions</PackageId>
+    <Title>IATEc Shared EventBus Abstractions</Title>
+    <Description>This project is a fork of MassTransit, updated to accelerate development for IATec teams. It is based on version 8.5.9.</Description>
+    <Copyright>@IATec Solutions</Copyright>
+    <PackageVersion>1.0.2-RC1</PackageVersion>
+    <PackageIconUrl>https://assets-services-dev.sdasystems.org/images/icons/standard.library.icon.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iatecbr/IATec.Shared.Net.EventBus</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageTags>MassTransit;Abstractions</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
