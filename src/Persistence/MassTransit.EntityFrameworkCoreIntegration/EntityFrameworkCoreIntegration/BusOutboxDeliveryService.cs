@@ -40,6 +40,18 @@ namespace MassTransit.EntityFrameworkCoreIntegration
         public BusOutboxDeliveryService(IBusControl busControl, IOptions<OutboxDeliveryServiceOptions> options,
             IOptions<EntityFrameworkOutboxOptions<TDbContext>> outboxOptions, IBusOutboxNotification notification,
             ILogger<BusOutboxDeliveryService<TDbContext>> logger, IServiceProvider provider)
+            : this(busControl, options, outboxOptions, notification, (ILogger)logger, provider)
+        {
+        }
+
+        /// <summary>
+        /// Protected constructor used by multi-bus variants that need to supply the <see cref="IBusControl" />
+        /// of a specific bus instance. Behavior is identical to the public constructor; only the bus control
+        /// origin differs.
+        /// </summary>
+        protected BusOutboxDeliveryService(IBusControl busControl, IOptions<OutboxDeliveryServiceOptions> options,
+            IOptions<EntityFrameworkOutboxOptions<TDbContext>> outboxOptions, IBusOutboxNotification notification,
+            ILogger logger, IServiceProvider provider)
         {
             _busControl = busControl;
             _notification = notification;
